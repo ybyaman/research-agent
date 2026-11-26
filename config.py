@@ -25,7 +25,9 @@ class Settings:
     llm_model: str = field(default_factory=lambda: _env("LLM_MODEL", "qwen3:8b"))
     embed_model: str = field(default_factory=lambda: _env("EMBED_MODEL", "nomic-embed-text"))
     llm_timeout: int = field(default_factory=lambda: _int("LLM_TIMEOUT", 120))
-    max_concurrency: int = field(default_factory=lambda: _int("MAX_CONCURRENCY", 2))
+    max_concurrency: int = field(default_factory=lambda: _int("MAX_CONCURRENCY", 4))  # graf node'ları
+    llm_max_parallel: int = field(default_factory=lambda: _int("LLM_MAX_PARALLEL", 1))  # Ollama'ya eşzamanlı istek
+    llm_http_retries: int = field(default_factory=lambda: _int("LLM_HTTP_RETRIES", 2))
     max_rounds: int = field(default_factory=lambda: _int("MAX_ROUNDS", 2))
     max_subquestions: int = field(default_factory=lambda: _int("MAX_SUBQUESTIONS", 5))
     sources_per_question: int = field(default_factory=lambda: _int("SOURCES_PER_QUESTION", 4))
