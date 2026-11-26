@@ -30,10 +30,25 @@ ollama pull nomic-embed-text
 
 ```bash
 pytest                                   # mock modda uçtan uca test
-python -m graph.workflow "Sorun buraya"  # terminalden tek çalıştırma
+python -m graph.runner "Sorun buraya"    # terminalden, adımlarıyla
 streamlit run app/streamlit_app.py       # arayüz
 python -m eval.run_eval                  # test seti
 ```
+
+## UI ve eval için event API
+
+Akış `graph.runner.stream_research(question)` ile adım adım izlenir; her adım bir `RunEvent` döner
+(şema: `graph/events.py`).
+
+| `kind` | Ne zaman | `data` |
+| --- | --- | --- |
+| `run_started` | Başta, bir kez | `question`, `mode`, `model` |
+| `node_finished` | Her node bittiğinde | Node'a özel: alt sorular, kaynaklar, bulgular, Critic kararı… |
+| `node_error` | Node hata verip yedek çıktıyla devam ettiğinde | `NodeError` alanları |
+| `run_finished` | Sonda, bir kez | `report`, `rounds`, `source_count`, `fact_count`, `error_count`, `llm` (çağrı, token, süre) |
+
+`message` alanı UI'da doğrudan gösterilebilecek Türkçe özettir. Yalnızca sonucu isteyenler
+`run_research(question)` kullanır.
 
 ## Klasörler ve sahipleri
 
