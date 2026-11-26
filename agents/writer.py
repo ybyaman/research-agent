@@ -1,24 +1,12 @@
 """Writer (Rol C). Bulgulardan [n] atıflı Markdown rapor yazar.
 
-TODO(C): gövdeyi llm ile yaz; atıf numaralarını burada deterministik üret ki model uydurmasın.
+TODO(C): gövdeyi llm ile yaz; atıf numaralarını graph.report.number_sources ile
+deterministik üret ki model uydurmasın.
 """
 
-from graph.state import Citation, ResearchState, Report
+from graph.report import basic_report
+from graph.state import ResearchState
 
 
 def run(state: ResearchState) -> dict:
-    facts = state.get("facts", [])
-    titles = {s.url: s.title for s in state.get("sources", [])}
-
-    numbers: dict[str, int] = {}
-    for f in facts:
-        numbers.setdefault(f.source_url, len(numbers) + 1)
-
-    lines = [f"# {state['question']}", ""]
-    for f in facts:
-        lines.append(f"- {f.claim} [{numbers[f.source_url]}]")
-    lines += ["", "## Kaynaklar", ""]
-    citations = [Citation(number=n, url=u, title=titles.get(u, u)) for u, n in numbers.items()]
-    lines += [f"{c.number}. [{c.title}]({c.url})" for c in citations]
-
-    return {"report": Report(title=state["question"], markdown="\n".join(lines), citations=citations)}
+    return {"report": basic_report(state["question"], state.get("facts", []), state.get("sources", []))}
