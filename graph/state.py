@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import operator
 from typing import Annotated, Literal, TypedDict
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import BaseModel, Field
 
@@ -77,15 +78,73 @@ class Report(BaseModel):
 # --------------------------------------------------------------------------- #
 
 
+class NodeError(BaseModel):
+    """Bir node'da yakalanan ve akışı durdurmayan hata."""
+
+    node: str = Field(description="Hatanın oluştuğu node, örn. 'searcher'")
+    message: str
+    round: int = 0
+    sub_question_id: str | None = None
+
+
+# --------------------------------------------------------------------------- #
+# Reducer'lar: paralel ya da ardışık node çıktılarının state'e nasıl ekleneceği
+# --------------------------------------------------------------------------- #
+
+_TRACKING_PARAMS = {"fbclid", "gclid", "ref"}
+
+
+def _is_tracking(key: str) -> bool:
+    key = key.lower()
+    return key.startswith("utm_") or key in _TRACKING_PARAMS
+
+
+def normalize_url(url: str) -> str:
+    """Aynı sayfanın farklı yazımlarını tek bir anahtara indirger (karşılaştırma içindir)."""
+    parts = urlsplit(url.strip())
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if not _is_tracking(k)]
+    path = parts.path.rstrip("/") or "/"
+    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), path, urlencode(query), ""))
+
+
+def merge_sources(left: list[Source] | None, right: list[Source] | None) -> list[Source]:
+    """Yeni kaynakları ekler; normalize edilmiş URL'si zaten olanları atlar (ilk gelen kalır)."""
+    merged = list(left or [])
+    seen = {normalize_url(s.url) for s in merged}
+    for s in right or []:
+        key = normalize_url(s.url)
+        if key not in seen:
+            seen.add(key)
+            merged.append(s)
+    return merged
+
+
+def merge_unique(left: list[str] | None, right: list[str] | None) -> list[str]:
+    """Sırayı koruyarak tekrarsız birleştirir."""
+    merged = list(left or [])
+    seen = set(merged)
+    for item in right or []:
+        if item not in seen:
+            seen.add(item)
+            merged.append(item)
+    return merged
+
+
+# --------------------------------------------------------------------------- #
+# Graph state
+# --------------------------------------------------------------------------- #
+
+
 class ResearchState(TypedDict, total=False):
     question: str  # kullanıcı sorusu (giriş)
     round: int  # Planner her çağrıldığında 1 artar
     plan: Plan  # son turun planı
-    sources: Annotated[list[Source], operator.add]  # paralel Searcher'lar ekler
+    sources: Annotated[list[Source], merge_sources]  # paralel Searcher'lar ekler, URL'ye göre tekrarsız
     facts: Annotated[list[Fact], operator.add]  # Reader ekler
-    read_urls: Annotated[list[str], operator.add]  # Reader'ın işlediği URL'ler
+    read_urls: Annotated[list[str], merge_unique]  # Reader'ın işlediği URL'ler
     critique: Critique
     report: Report
+    errors: Annotated[list[NodeError], operator.add]  # akışı durdurmayan hatalar
 
 
 class SearchTask(TypedDict):
