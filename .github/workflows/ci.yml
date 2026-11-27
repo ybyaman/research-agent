@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:          # main'e ve zincirleme PR'larda diğer branch'lere açılan tüm PR'lar
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true   # aynı PR'a yeni commit gelince eski çalıştırmayı iptal et
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      LLM_MODE: mock   # CI'da Ollama yok; RUN_OLLAMA_TESTS ayarlı olmadığı için gerçek model testleri atlanır
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+      - name: Bağımlılıkları kur
+        run: uv pip install --system -e ".[dev]"
+      - name: Testler
+        run: pytest -q
+
+  lint:
+    # Yalnızca uyarı: bulgular PR'da satır üzerinde görünür, iş yine de yeşil kalır (--exit-zero)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Ruff
+        run: uvx ruff check --output-format=github --exit-zero .
