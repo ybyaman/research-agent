@@ -28,3 +28,11 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = ["llm", "graph", "agents", "tools", "eval"]
 py-modules = ["config"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
