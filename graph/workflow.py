@@ -9,7 +9,7 @@ from agents import critic, planner, reader, searcher, writer
 from config import settings
 from graph import resilience as r
 from graph.state import ResearchState, SearchTask
-from graph.trace import start_run, traced
+from graph.trace import traced
 
 
 def fan_out_search(state: ResearchState) -> list[Send] | str:
@@ -58,17 +58,3 @@ def build_graph():
 
 def run_config() -> dict:
     return {"max_concurrency": settings.max_concurrency, "recursion_limit": 50}
-
-
-def run_research(question: str) -> ResearchState:
-    """Tek seferde çalıştırır ve son state'i döndürür."""
-    start_run()
-    return build_graph().invoke({"question": question, "round": 0}, config=run_config())
-
-
-if __name__ == "__main__":
-    import sys
-
-    q = " ".join(sys.argv[1:]) or "Lokal LLM'lerin araştırma asistanlarında kullanımı"
-    final = run_research(q)
-    print(final["report"].markdown)

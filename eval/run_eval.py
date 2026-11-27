@@ -8,7 +8,7 @@ import json
 import time
 from pathlib import Path
 
-from graph.workflow import run_research
+from graph.runner import run_research
 
 ROOT = Path(__file__).resolve().parent.parent
 
